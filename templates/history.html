@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Geçmiş Yüklemeler</h1>
+      <p>Burada önceki yükleme kayıtları listelenmektedir. Tablo sadece `XU_UPLOAD` kayıtlarını gösterir.</p>
+    </div>
+  </div>
+
+  <div class="panel card">
+    {% if uploads %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kayıt ID</th>
+              <th>Dosya Adı</th>
+              <th>Satır Sayısı</th>
+              <th>Yükleme Tipi</th>
+              <th>Tarih</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for upload in uploads %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ upload.id }}</td>
+                <td>{{ upload.filename }}</td>
+                <td>{{ upload.rowcount }}</td>
+                <td>{{ upload.filtercode }}</td>
+                <td>{{ upload.uploadstartdate.strftime('%d.%m.%Y %H:%M') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">Geçmiş yükleme kaydı bulunamadı.</p>
+    {% endif %}
+  </div>
+{% endblock %}

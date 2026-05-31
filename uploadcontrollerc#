@@ -1,0 +1,178 @@
+using BIPortal.Domain;
+using BIPortal.Domain.Dtos;
+using BIPortal.Mvc.Models;
+using BIPortal.Utility;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using System.Configuration;
+using BIPortal.Utility.UI;
+using BIPortal.Utility.Exceptions;
+using BIPortal.Mvc.Definitions;
+using DDTek.Oracle;
+
+namespace BIPortal.Mvc.Controllers
+{
+	public class UploadController : BaseController
+	{
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult Index()
+		{
+			return View();
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult GetUploads(GridFilter gridFilter)
+        
+        {
+            var uploadService = new UploadService();
+			string username = UploadUtility.GetUsername(User.Identity.Name);
+
+			switch (gridFilter.sortField)
+			{
+				case "ApplicationName":
+					gridFilter.sortField = "APPLICATIONCODE";
+					break;
+				case "FilterName":
+					gridFilter.sortField = "FILTERCODE";
+					break;
+				case "OutputTypeName":
+					gridFilter.sortField = "OUTPUTCODE";
+					break;
+				case "StatusName":
+					gridFilter.sortField = "XU_UPLOADSTATUS.NAME";
+					break;
+			}
+
+			//var uploads = uploadService.GetUploads(username, gridFilter);
+            /*FD 20180918 Yukarıdaki teradata kodu kapatılıp, exadata'dan çalışacak şekilde oracle ekli func'lar yazıldı.*/
+            var uploads = uploadService.GetUploadsOracle(username, gridFilter);
+
+            var uploadList =
+				from u in uploads
+				select new UploadListModel
+				{
+					TicketNo = (long)u.TICKETNO,
+					ApplicationName = DefinitionProvider.GetApplication(u.APPLICATIONCODE).Name,
+					FilterName = DefinitionProvider.GetFilter(u.FILTERCODE).Name,
+					OutputTypeName = !string.IsNullOrEmpty(u.OUTPUTCODE) ? DefinitionProvider.GetOutputType(u.OUTPUTCODE).Name : string.Empty,
+					Description = u.DESCRIPTION,
+					UploadStartDate = u.UPLOADSTARTDATE.ToString(),
+					UploadEndDate = (u.UPLOADENDDATE != null ? u.UPLOADENDDATE.ToString() : string.Empty),
+					StatusName = u.XU_UPLOADSTATUS.NAME,
+					RowCount = u.ROWCOUNT,
+					FileName = u.FILENAME
+				};
+
+			//var uploadCount = uploadService.GetUploadCount(username);
+            /*FD 20180918 Yukarıdaki teradata kodu kapatılıp, exadata'dan çalışacak şekilde oracle ekli func'lar yazıldı.*/
+            var uploadCount = uploadService.GetUploadCountOracle(username);
+            
+            return Json(new
+			{
+				data = uploadList.ToList(),
+				itemsCount = uploadCount
+			}, JsonRequestBehavior.AllowGet);
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult Save()
+		{
+			var uploadService = new UploadService();
+
+			var uploadSaveModel = new UploadSaveModel();
+			//uploadSaveModel.Applications = uploadService.GetApplications();
+			uploadSaveModel.Applications = DefinitionProvider.GetApplications();
+			//uploadSaveModel.Filters = uploadService.GetFilters(uploadSaveModel.Applications.FirstOrDefault().ID);
+			uploadSaveModel.Filters = DefinitionProvider.GetFilters(uploadSaveModel.Applications.FirstOrDefault().ID);
+			//uploadSaveModel.OutputTypes = uploadService.GetOutputTypes(uploadSaveModel.Applications.FirstOrDefault().ID, uploadSaveModel.Filters.FirstOrDefault().ID);
+			uploadSaveModel.OutputTypes = DefinitionProvider.GetOutputTypes(uploadSaveModel.Applications.FirstOrDefault().ID, uploadSaveModel.Filters.FirstOrDefault().ID);
+			uploadSaveModel.Filter = uploadSaveModel.Filters.FirstOrDefault();
+
+			return View(uploadSaveModel);//********//
+		}
+
+		[HttpPost]
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult Save(int applicationId, int filterId, int? outputTypeId, string description, HttpPostedFileBase file)
+		{
+			if (string.IsNullOrWhiteSpace(description))
+				throw new PortalUserException("Lütfen açıklama alanını doldurunuz.");
+
+			if (file == null)
+				throw new PortalUserException("Lütfen yüklemek istediğiniz dosyayı seçiniz.");
+
+			var uploadService = new UploadService();
+			string filePath = Config.AppSettings.UploadFolder;
+			
+			string username = UploadUtility.GetUsername(User.Identity.Name);
+			string userip = Request.UserHostAddress;
+
+			string applicationCode = DefinitionProvider.GetApplication(applicationId).Code;
+			string filterCode = DefinitionProvider.GetFilter(filterId).Code;
+			string outputCode = string.Empty;
+				if(outputTypeId!=null)
+				outputCode = DefinitionProvider.GetOutputType((int)outputTypeId).Code;
+
+			string sftpUrl = Config.AppSettings.SftpUrl;
+			string sftpUser = Config.AppSettings.SftpUser;
+			string sftpPassword = Config.AppSettings.SftpPassword;
+			string sftpDirectory = Config.AppSettings.SftpDirectory;
+
+			var result = uploadService.UploadFile(username, userip, applicationCode, filterCode, outputCode, description, filePath, file.FileName, file.InputStream,
+													sftpUrl, sftpUser, sftpPassword, sftpDirectory);
+
+			if (result.UploadStatus == Domain.Enums.UploadStatuses.Failed)
+				return PortalJsonResult(PortalResponseTypes.error, result.ErrorMessage);
+
+			return PortalJsonResult(PortalResponseTypes.success, string.Format("Dosya başarıyla sunucuya alınmıştır. Ticket numarası:{0}", result.Ticket));
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult GetApplications()
+		{
+			//var uploadService = new UploadService();
+			//var applications = uploadService.GetApplications().Select(a => new { a.ID, a.NAME }).ToList();
+
+			var applications = DefinitionProvider.GetApplications();
+
+			return PortalJsonResult(applications);
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult GetFilters(int applicationId)
+		{
+			//var uploadService = new UploadService();
+			//var filters = uploadService.GetFilters(applicationId).Select(f => new { f.ID, f.NAME }).ToList();
+
+			var filters = DefinitionProvider.GetFilters(applicationId);
+
+			return PortalJsonResult(filters);
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult GetOutputTypes(int applicationId, int filterId)
+		{
+			//var uploadService = new UploadService();
+			//var outputTypes = uploadService.GetOutputTypes(applicationId, filterId).Select(o => new { o.ID, o.NAME }).ToList();
+
+			var outputTypes = DefinitionProvider.GetOutputTypes(applicationId, filterId);
+
+			return PortalJsonResult(outputTypes);
+		}
+
+		[Authorize(Roles = Constants.AllowedGroups)]
+		public ActionResult GetFilterInfo(int filterId)
+		{
+			string applicationPath = Request.Url.Scheme + "://" + Request.Url.Authority + Request.ApplicationPath.TrimEnd('/') + "/";
+			string templatePath = Config.AppSettings.TemplateFolder + "/";
+
+			var uploadService = new UploadService();
+			//var filter = uploadService.GetFilter(filterId);
+			var filter = DefinitionProvider.GetFilter(filterId);
+			return PortalJsonResult(new { DESCRIPTIONS = filter.Description, TEMPLATEFILEPATH = applicationPath + templatePath + filter.TemplateFileName });
+		}
+	}
+}

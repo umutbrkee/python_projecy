@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>CSV Yükleme</h1>
+      <p>Aşağıdaki adımları izleyerek CSV dosyanızı yükleyin. Mevcut iş akışı korunmuştur.</p>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-list">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-grid">
+    <aside class="side-panel card">
+      <h2>Yardım</h2>
+      <p>Formu doldurun, CSV dosyanızı seçin ve gönderin. İşlem sonucunu sonraki ekranda göreceksiniz.</p>
+      <ul>
+        <li>Uygulama Tipi seçin</li>
+        <li>Yükleme Tipi seçin</li>
+        <li>Açıklamayı yazın</li>
+        <li>CSV dosyanızı yükleyin</li>
+      </ul>
+      <div class="sample-box">
+        <a class="sample-link" href="{{ url_for('download_sample') }}">Örnek CSV Formatı İndir</a>
+      </div>
+    </aside>
+
+    <section class="panel card form-card">
+      <form action="{{ url_for('submit') }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="application_type">Uygulama Tipi</label>
+          <select id="application_type" name="application_type" required>
+            {% for value, label in application_types %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="upload_type">Yükleme Tipi</label>
+          <select id="upload_type" name="upload_type" required>
+            {% for value, label in upload_types %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Açıklama</label>
+          <textarea id="description" name="description" rows="5" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="csv_file">CSV / XLSX Dosyası</label>
+          <input type="file" id="csv_file" name="csv_file" accept=".csv,.xlsx" required />
+        </div>
+
+        <button type="submit" class="primary-button">Gönder</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

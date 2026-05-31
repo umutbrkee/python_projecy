@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BIPortal CSV Yükleme</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-bar">
+        <div class="brand-logo"></div>
+        <div>
+          <p class="brand-label">BIPortal</p>
+          <p class="brand-subtitle">CSV Yükleme ve İşleme</p>
+        </div>
+      </div>
+      <nav class="topnav">
+        <a href="{{ url_for('index') }}">Yeni Yükleme</a>
+        <a href="{{ url_for('history') }}">Geçmiş Yüklemeler</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+      <p>Bu uygulama sadece lokal ortam için tasarlanmıştır. Kurumsal yetkilendirme daha sonra devreye alınacaktır.</p>
+    </footer>
+  </body>
+</html>
