@@ -5,20 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BIPortal CSV Yükleme</title>
     <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+      }
+      
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      
+      .user-info {
+        background: rgba(255,255,255,0.1);
+        padding: 8px 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        color: white;
+      }
+      
+      .user-info strong {
+        color: #ffd700;
+      }
+      
+      .logout-link {
+        background: #d32f2f;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background 0.3s;
+      }
+      
+      .logout-link:hover {
+        background: #b71c1c;
+      }
+      
+      .topnav {
+        display: flex;
+        gap: 15px;
+      }
+    </style>
   </head>
   <body>
     <header class="topbar">
-      <div class="brand-bar">
-        <div class="brand-logo"></div>
-        <div>
-          <p class="brand-label">BIPortal</p>
-          <p class="brand-subtitle">CSV Yükleme ve İşleme</p>
+      <div class="topbar-left">
+        <div class="brand-bar">
+          <div class="brand-logo"></div>
+          <div>
+            <p class="brand-label">BIPortal</p>
+            <p class="brand-subtitle">CSV Yükleme ve İşleme</p>
+          </div>
         </div>
+        <nav class="topnav">
+          <a href="{{ url_for('index') }}">Yeni Yükleme</a>
+          <a href="{{ url_for('history') }}">Geçmiş Yüklemeler</a>
+        </nav>
       </div>
-      <nav class="topnav">
-        <a href="{{ url_for('index') }}">Yeni Yükleme</a>
-        <a href="{{ url_for('history') }}">Geçmiş Yüklemeler</a>
-      </nav>
+      
+      <div class="topbar-right">
+        {% if username %}
+          <div class="user-info">
+            Hoş geldiniz, <strong>{{ username }}</strong>
+          </div>
+          <a href="{{ url_for('logout') }}" class="logout-link">Çıkış Yap</a>
+        {% endif %}
+      </div>
     </header>
 
     <main class="page-shell">

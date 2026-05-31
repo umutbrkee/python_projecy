@@ -46,7 +46,7 @@ def compute_sha2_hash(content_bytes):
     return hashlib.sha256(content_bytes).hexdigest()
 
 
-def process_csv_upload(application_type, upload_type, description, filename, file_bytes, user_ip=None):
+def process_csv_upload(application_type, upload_type, description, filename, file_bytes, user_ip=None, username=None):
     try:
         rows = parse_csv_rows(file_bytes, filename)
         if len(rows) == 0:
@@ -62,7 +62,7 @@ def process_csv_upload(application_type, upload_type, description, filename, fil
             applicationcode=application_type[:20],
             filtercode=upload_type[:20],
             outputcode="CSV",
-            username="local-user",
+            username=username or "local-user",
             uploadstartdate=uploaded_at,
             uploadenddate=uploaded_at,
             description=description[:50],
