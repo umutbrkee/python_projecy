@@ -21,7 +21,7 @@ Bu proje, mevcut uygulamanın sadeleştirilmiş bir Python/Flask versiyonudur. T
 2. Sanal ortam oluşturun ve etkinleştirin:
    ```bash
    python -m venv .venv
-   .venv\Scripts\activate  # Windows
+   .venv\Scripts\activate  # Windows (Set-ExecutionPolicy -Scope CurrentUser RemoteSigned) hata alırsa bunu çalıştır
    # ya da
    source .venv/bin/activate  # Linux/Mac
    ```
