@@ -18,6 +18,7 @@
               <th>Dosya Adı</th>
               <th>Satır Sayısı</th>
               <th>Yükleme Tipi</th>
+              <th>Açıklama</th>
               <th>Tarih</th>
             </tr>
           </thead>
@@ -29,6 +30,7 @@
                 <td>{{ upload.filename }}</td>
                 <td>{{ upload.rowcount }}</td>
                 <td>{{ upload.filtercode }}</td>
+                <td>{{ upload.description or '-' }}</td>
                 <td>{{ upload.uploadstartdate.strftime('%d.%m.%Y %H:%M') }}</td>
               </tr>
             {% endfor %}

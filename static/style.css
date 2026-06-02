@@ -25,7 +25,9 @@ body {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  background-image: url('/static/images/tt.jpg');
+  background-size: cover;
+  background-position: center;
   box-shadow: 0 12px 30px rgba(37, 99, 235, 0.24);
 }
 
