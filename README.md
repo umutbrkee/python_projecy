@@ -8,20 +8,55 @@ Bu proje, mevcut uygulamanın sadeleştirilmiş bir Python/Flask versiyonudur. T
 - `XU_UPLOAD` ve `XU_UPLOADDATA_V2` tablolarına kayıt ekleme
 - SFTP, dosya taşıma ve kurumsal yetkilendirme mekanizmalarını şimdilik kaldırma
 
-## Başlatma
+## Kurulum ve Başlatma
 
-1. Sanal ortam oluşturun ve etkinleştirin.
-2. `pip install -r requirements.txt`
-3. Aşağıdaki ortam değişkenlerinden biri mutlaka ayarlanmalıdır:
-   - `DATABASE_URL` veya
-   - `ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_DSN`
-   - ya da `ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_HOST`, `ORACLE_PORT` ve `ORACLE_SERVICE_NAME`/`ORACLE_SID`
-   - Örnek Oracle service name: `ORACLE_HOST=localhost`, `ORACLE_PORT=1521`, `ORACLE_SERVICE_NAME=XEDPB1`
-   - Örnek Oracle SID: `ORACLE_HOST=localhost`, `ORACLE_PORT=1521`, `ORACLE_SID=XE`
-4. `python app.py`
-5. Tarayıcıyı açın: `http://127.0.0.1:5000`
+### Yeni bir bilgisayarda kurulum (GitHub'dan klonlama)
 
-> Not: Bu proje artık varsayılan olarak local SQLite yerine dıştaki veritabanına yazacak. Eğer bağlantı ayarlanmamışsa uygulama başlatılmaz.
+1. Projeyi klonlayın:
+   ```bash
+   git clone <repository-url>
+   cd python
+   ```
+
+2. Sanal ortam oluşturun ve etkinleştirin:
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate  # Windows
+   # ya da
+   source venv/bin/activate  # Linux/Mac
+   ```
+
+3. Bağımlılıkları yükleyin:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. `.env` dosyası oluşturun:
+   - `.env.example` dosyasını `.env` olarak kopyalayın
+   - Kendi ortamınıza uygun değerleri düzenleyin
+   ```bash
+   copy .env.example .env  # Windows
+   # ya da
+   cp .env.example .env  # Linux/Mac
+   ```
+
+5. `.env` dosyasında aşağıdaki değerleri güncelle:
+   - `ORACLE_USER` - Oracle kullanıcı adı
+   - `ORACLE_PASSWORD` - Oracle şifresi
+   - `ORACLE_HOST` - Oracle sunucusu (localhost veya IP)
+   - `ORACLE_PORT` - Oracle portu (genelde 1521)
+   - `ORACLE_SERVICE_NAME` - Service adı (XEPDB1 vb.)
+   - `LDAP_ENABLED` - True/False (LDAP kullanıyorsa)
+   - `FLASK_SECRET_KEY` - Güvenli bir anahtar ayarlayın
+
+6. Uygulamayı başlatın:
+   ```bash
+   python app.py
+   ```
+
+7. Tarayıcıyı açın: `http://127.0.0.1:5000`
+
+> **Önemli:** `.env` dosyası asla GitHub'a commit edilmemelidir. `.gitignore` dosyasında zaten tanımlıdır. Her bilgisayarda kendi `.env` dosyasını oluşturmalısınız.
 
 ## Test: Oracle Insert Servisi
 
