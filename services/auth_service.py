@@ -1,69 +1,92 @@
 """
 Auth Service - Kullanıcı doğrulama ve yetkilendirme
-AllowedGroups kontrolü ve login yönetimi
+LDAP/Active Directory entegrasyonu
 """
-import hashlib
+import logging
 from typing import Dict, Tuple, Optional
+from services.ldap_service import create_ldap_service
+from config import LDAP_ENABLED, LDAP_SERVER, LDAP_PORT, LDAP_BASE_DN, LDAP_USE_SSL, LDAP_TIMEOUT, LDAP_ALLOWED_GROUPS
 
-# Önceden tanımlı kullanıcılar ve izin verilen gruplar
-# Gerçek ortamda bu bir veritabanında olacak ve şifreler hash'lenmiş olacak
-ALLOWED_USERS = {
-    "admin": {
-        "password": "admin123",  # Üretim ortamında hash'lenmiş olmalı
-        "groups": ["admin", "upload_users"]
-    },
-    "biportals": {
-        "password": "biportal2024",
-        "groups": ["upload_users"]
-    },
-    "user1": {
-        "password": "user123",
-        "groups": ["upload_users"]
-    }
-}
+logger = logging.getLogger(__name__)
 
-ALLOWED_GROUPS = ["admin", "upload_users"]
+# LDAP servis instance (lazy initialization)
+_ldap_service = None
 
 
-def hash_password(password: str) -> str:
-    """Şifre hash'leme"""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def verify_password(plain_password: str, stored_password: str) -> bool:
-    """Şifre doğrulama
-    Gerçek ortamda bcrypt gibi bir kütüphane kullanılmalı
-    """
-    # Basit komparizyon için şimdilik düz metin kullanıyoruz
-    # Üretim için: bcrypt.checkpw() kullan
-    return plain_password == stored_password
+def get_ldap_service():
+    """LDAP servis instance'ını al"""
+    global _ldap_service
+    if _ldap_service is None and LDAP_ENABLED:
+        _ldap_service = create_ldap_service(
+            ldap_server=LDAP_SERVER,
+            ldap_port=LDAP_PORT,
+            ldap_base_dn=LDAP_BASE_DN,
+            use_ssl=LDAP_USE_SSL,
+            timeout=LDAP_TIMEOUT,
+        )
+    return _ldap_service
 
 
 def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict]]:
     """
-    Kullanıcıyı doğrula
+    Kullanıcıyı LDAP/AD ile doğrula
+    
+    Args:
+        username: Kullanıcı adı (ör: jdoe veya TTNET\\jdoe)
+        password: Şifre
     
     Returns:
         (başarılı, kullanıcı_bilgisi)
     """
-    user = ALLOWED_USERS.get(username)
+    if not LDAP_ENABLED:
+        print("RAW LDAP_ENABLED:", LDAP_ENABLED)
+        print("TYPE:", type(LDAP_ENABLED))
+        logger.warning("LDAP etkinleştirilmemiş")
+        return True, {
+            "username": username,
+            "groups": ["TTNET\\BO_Upload_Users"],
+            "display_name": "Mock User"
+        }
     
-    if not user:
+    ldap_service = get_ldap_service()
+    if not ldap_service:
+        logger.error("LDAP servis başlatılamadı")
         return False, None
     
-    if not verify_password(password, user["password"]):
+    # LDAP ile doğrula
+    success, user_info = ldap_service.authenticate(username, password)
+    
+    if not success or not user_info:
         return False, None
     
-    # Kullanıcının en az bir izin verilen grup'ta olması gerekli
-    user_groups = user.get("groups", [])
-    if not any(g in ALLOWED_GROUPS for g in user_groups):
+    # Kullanıcının izin verilen gruplardan birinde olup olmadığını kontrol et
+    user_groups = user_info.get("groups", [])
+    
+    # İzin verilen grup kontrolü
+    has_permission = any(
+        allowed_group in user_groups 
+        for allowed_group in LDAP_ALLOWED_GROUPS
+    )
+    
+    if not has_permission:
+        logger.warning(
+            f"Kullanıcı yetkili grup'ta değil. Username: {username}, Gruplar: {user_groups}, "
+            f"Gerekli: {LDAP_ALLOWED_GROUPS}"
+        )
         return False, None
     
-    return True, {
-        "username": username,
+    # Session'a yazılacak user info oluştur
+    session_user_info = {
+        "username": user_info.get("username"),
+        "display_name": user_info.get("display_name"),
+        "email": user_info.get("email"),
         "groups": user_groups,
-        "has_upload_permission": "upload_users" in user_groups
+        "ldap_dn": user_info.get("ldap_dn"),
+        "has_upload_permission": True,  # LDAP gruplarında varsa yükleme izni var
     }
+    
+    logger.info(f"Kimlik doğrulama başarılı: {username}, Gruplar: {user_groups}")
+    return True, session_user_info
 
 
 def check_user_groups(user_info: Dict, required_groups: list) -> bool:

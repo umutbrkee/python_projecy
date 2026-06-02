@@ -25,6 +25,24 @@ else:
 SQLALCHEMY_DATABASE_TRACK_MODIFICATIONS = False
 USE_ORACLE = SQLALCHEMY_DATABASE_URI.startswith("oracle")
 
+# ===== LDAP / Active Directory Konfigürasyonu =====
+# Örnek: LDAP_SERVER=dc.ttnet.local
+LDAP_ENABLED = os.environ.get("LDAP_ENABLED", "False").lower() == "true"
+LDAP_SERVER = os.environ.get("LDAP_SERVER", "localhost")
+LDAP_PORT = int(os.environ.get("LDAP_PORT", "389"))
+LDAP_BASE_DN = os.environ.get("LDAP_BASE_DN", "dc=ttnet,dc=local")
+LDAP_USE_SSL = os.environ.get("LDAP_USE_SSL", "False").lower() == "true"
+LDAP_TIMEOUT = int(os.environ.get("LDAP_TIMEOUT", "10"))
+
+# İzin verilen AD grupları (virgülle ayrılmış)
+# Örnek: TTNET\DWH_ADMINS_BO,TTNET\BO_Upload_Users
+LDAP_ALLOWED_GROUPS = [
+    g.strip() for g in os.environ.get(
+        "LDAP_ALLOWED_GROUPS",
+        "TTNET\\DWH_ADMINS_BO,TTNET\\BO_Upload_Users"
+    ).split(",")
+]
+
 ALLOWED_EXTENSIONS = {"csv", "xlsx"}
 APPLICATION_TYPES = [("BIPortal", "BIPortal")]
 UPLOAD_TYPES = [

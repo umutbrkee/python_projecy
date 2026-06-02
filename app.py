@@ -1,13 +1,21 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from werkzeug.utils import secure_filename
 from services.db import db, init_db
 from services.upload_service import process_csv_upload
 from services.auth_service import authenticate_user, set_user_to_session, clear_user_from_session, get_user_from_session
-from services.auth_decorators import login_required, role_required, upload_permission_required
+from services.auth_decorators import login_required, authorize, upload_permission_required
 from models import XUUpload
-from config import ALLOWED_EXTENSIONS, APPLICATION_TYPES, UPLOAD_TYPES, SAMPLE_CSV_NAME
-import os
+from config import ALLOWED_EXTENSIONS, APPLICATION_TYPES, UPLOAD_TYPES, SAMPLE_CSV_NAME, LDAP_ALLOWED_GROUPS
 from datetime import timedelta
+import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Logging ayarlaması
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config.from_object("config")
@@ -62,7 +70,7 @@ def login():
         if next_page and next_page.startswith("/"):
             return redirect(next_page)
         
-        flash(f"Hoş geldiniz, {username}!", "success")
+        flash(f"Hoş geldiniz, {user_info.get('display_name', username)}!", "success")
         return redirect(url_for("index"))
     
     return render_template(
@@ -73,11 +81,12 @@ def login():
 
 @app.route("/logout")
 def logout():
-    username = get_user_from_session(session)
-    if username:
-        username = username.get("username", "Kullanıcı")
+    user = get_user_from_session(session)
+    if user:
+        username = user.get("username", "Kullanıcı")
+        logger.info(f"Çıkış: {username}")
     clear_user_from_session(session)
-    flash(f"Çıkış yaptınız. Görüşmek üzere!", "success")
+    flash("Çıkış yaptınız. Görüşmek üzere!", "success")
     return redirect(url_for("login"))
 
 
@@ -106,13 +115,13 @@ def history():
 
 @app.route("/download-sample")
 @login_required
-@upload_permission_required
+@authorize(LDAP_ALLOWED_GROUPS)
 def download_sample():
     return send_from_directory("sample_data", SAMPLE_CSV_NAME, as_attachment=True)
 
 @app.route("/submit", methods=["POST"])
 @login_required
-@upload_permission_required
+@authorize(LDAP_ALLOWED_GROUPS)
 def submit():
     user = get_user_from_session(session)
     application_type = request.form.get("application_type")
@@ -148,6 +157,7 @@ def submit():
     )
 
     if result["success"]:
+        logger.info(f"Dosya yükleme başarılı: {username}, Dosya: {filename}, Satırlar: {result['row_count']}")
         return render_template(
             "result.html",
             status="Başarılı",
@@ -156,6 +166,7 @@ def submit():
             username=username,
         )
 
+    logger.error(f"Dosya yükleme başarısız: {username}, Dosya: {filename}, Hata: {result['message']}")
     flash(result["message"], "danger")
 
     return render_template(
